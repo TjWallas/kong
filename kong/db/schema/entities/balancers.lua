@@ -84,18 +84,38 @@ local healthchecks_defaults = {
 }
 
 
--- hcd("passive.unhealthy.timeouts") returns 0
-local function hcd(route)
-  local node = healthchecks_defaults
-  for token in string.gmatch(route, "([^%.]+)") do
-    node = assert(node[token], route)
+local types = {
+  timeout = seconds,
+  concurrency = positive_int,
+  interval = seconds,
+  successes = positive_int_or_zero,
+  tcp_failures = positive_int_or_zero,
+  timeouts = positive_int_or_zero,
+  http_failures = positive_int_or_zero,
+  http_path = typedefs.path,
+  http_statuses = http_statuses,
+}
+
+local function gen_fields(tbl)
+  local fields = {}
+  local count = 0
+  for name, default in pairs(tbl) do
+    local typ = types[name]
+    local def
+    if typ then
+      def = typ{ default = default }
+    else
+      def = { type = "record", fields = gen_fields(default), default = default }
+    end
+    count = count + 1
+    fields[count] = { [name] = def }
   end
-  return node
+  return fields
 end
 
 
-return {
-  name = "load_balancers",
+local r =  {
+  name = "balancers",
   primary_key = { "id" },
   fields = {
     { id = typedefs.uuid, },
@@ -108,45 +128,11 @@ return {
     { hash_on_cookie = { type = "string",  custom_validator = utils.validate_cookie_name }, },
     { hash_on_cookie_path = typedefs.path{ default = "/", }, },
     { slots = { type = "integer", default = 10000, between = { 10, 2^16 }, }, },
-    { healthchecks = { type = "record", default = healthchecks_defaults, fields = {
-
-      { active = { type = "record", default = hcd("active"), fields = {
-
-        { timeout = seconds{ default = hcd("active.timeout") }, },
-        { concurrency = positive_int{ default = hcd("active.concurrency") }, },
-        { http_path = typedefs.path{ default = hcd("active.http_path") }, },
-
-        { healthy = { type = "record", default = hcd("active.healthy"), fields = {
-          { interval = seconds{ default = hcd("active.healthy.interval") }, },
-          { successes = positive_int_or_zero{ default = hcd("active.healthy.successes") }, },
-          { http_statuses = http_statuses{ default = hcd("active.healthy.http_statuses"), }, },
-        }, }, }, --/healthy
-
-        { unhealthy = { type = "record", default = hcd("active.unhealthy"), fields = {
-          { interval = seconds{ default = hcd("active.unhealthy.interval") }, },
-          { http_statuses = http_statuses{ default = hcd("active.unhealthy.http_statuses"), }, },
-          { tcp_failures = positive_int_or_zero{ default = hcd("active.unhealthy.tcp_failures") }, },
-          { timeouts = positive_int_or_zero{ default = hcd("active.unhealthy.timeouts") }, },
-          { http_failures = positive_int_or_zero{ default = hcd("active.unhealthy.http_failures") }, },
-        }, }, }, -- /unhealthy
-      }, }, }, -- /active
-
-      { passive = { type = "record", defaults = hcd("passive"), fields = {
-
-        { healthy = { type = "record", defaults = hcd("passive.healthy"), fields = {
-          { http_statuses = http_statuses{ default = hcd("passive.healthy.http_statuses") }, },
-          { successes = positive_int_or_zero{ default = hcd("passive.healthy.successes") }, },
-        }, }, }, -- /healthy
-
-        { unhealthy = { type = "record", defaults = hcd("passive.unhealthy"), fields = {
-          { http_statuses = http_statuses{ default = hcd("passive.unhealthy.http_statuses"), }, },
-          { tcp_failures = positive_int_or_zero{ default = hcd("passive.unhealthy.tcp_failures") }, },
-          { timeouts = positive_int_or_zero{ default = hcd("passive.unhealthy.timeouts") }, },
-          { http_failures = positive_int_or_zero{ default = hcd("passive.unhealthy.http_failures") }, },
-        }, }, },
-      }, }, }, -- /passive
-    }, }, }, -- /healthchecks
-  },
+    { healthchecks = { type = "record",
+        default = healthchecks_defaults,
+        fields = gen_fields(healthchecks_defaults),
+    }, },
+},
   entity_checks = {
     -- hash_on_header must be present when hashing on header
     { conditional = {
@@ -192,3 +178,5 @@ return {
     -- TODO: check that upper(hash_on_header) ~= upper(hash_fallback_header)
   },
 }
+
+return r

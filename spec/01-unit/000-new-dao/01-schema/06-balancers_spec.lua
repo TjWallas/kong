@@ -1,11 +1,11 @@
 local Schema = require "kong.db.schema"
-local load_balancers = require "kong.db.schema.entities.load_balancers"
+local balancers = require "kong.db.schema.entities.balancers"
 
 
-local LoadBalancers = Schema.new(load_balancers)
+local Balancers = Schema.new(balancers)
 
-local function validate(lb)
-  return LoadBalancers:validate(LoadBalancers:process_auto_fields(lb, "insert"))
+local function validate(b)
+  return Balancers:validate(Balancers:process_auto_fields(b, "insert"))
 end
 
 
@@ -17,7 +17,7 @@ describe("load balancers", function()
 
 
   it("validates a valid load balancer", function()
-    local lb = {
+    local b = {
       id              = a_valid_uuid,
       name            = "my_service",
       hash_on         = "header",
@@ -25,7 +25,7 @@ describe("load balancers", function()
       hash_fallback   = "cookie",
       hash_on_cookie  = "a_cookie",
     }
-    assert(validate(lb))
+    assert(validate(b))
   end)
 
   it("invalid name produces error", function()
@@ -136,20 +136,20 @@ describe("load balancers", function()
   end)
 
   it("produces defaults", function()
-    local lb = {
+    local b = {
       name = "www.example.com",
     }
-    lb = LoadBalancers:process_auto_fields(lb, "insert")
-    local ok, err = LoadBalancers:validate(lb)
+    b = Balancers:process_auto_fields(b, "insert")
+    local ok, err = Balancers:validate(b)
     assert.truthy(ok)
     assert.is_nil(err)
-    assert.match(uuid_pattern, lb.id)
-    assert.same(lb.name, "www.example.com")
-    assert.same(lb.hash_on, "none")
-    assert.same(lb.hash_fallback, "none")
-    assert.same(lb.hash_on_cookie_path, "/")
-    assert.same(lb.slots, 10000)
-    assert.same(lb.healthchecks, {
+    assert.match(uuid_pattern, b.id)
+    assert.same(b.name, "www.example.com")
+    assert.same(b.hash_on, "none")
+    assert.same(b.hash_fallback, "none")
+    assert.same(b.hash_on_cookie_path, "/")
+    assert.same(b.slots, 10000)
+    assert.same(b.healthchecks, {
       active = {
         timeout = 1,
         concurrency = 10,
