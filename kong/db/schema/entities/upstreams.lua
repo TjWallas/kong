@@ -115,7 +115,7 @@ end
 
 
 local r =  {
-  name = "balancers",
+  name = "upstreams",
   primary_key = { "id" },
   fields = {
     { id = typedefs.uuid, },

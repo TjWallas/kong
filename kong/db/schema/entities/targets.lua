@@ -6,7 +6,7 @@ return {
   fields = {
     { id = typedefs.uuid },
     { created_at = { type = "integer", timestamp = true, auto = true }, },
-    { balancer   = { type = "foreign", reference = "balancers", required = true }, },
+    { upstream   = { type = "foreign", reference = "upstreams", required = true }, },
 -- FIXME: need to use utils.format_host to transform the target
     { target     = typedefs.host { required = true }, },
     { weight     = { type = "integer", default = 100, between = { 0, 1000 }, }, },

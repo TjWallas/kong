@@ -1,23 +1,23 @@
 local Schema = require "kong.db.schema"
-local balancers = require "kong.db.schema.entities.balancers"
+local upstreams = require "kong.db.schema.entities.upstreams"
 
 
-local Balancers = Schema.new(balancers)
+local Upstreams = Schema.new(upstreams)
 
 local function validate(b)
-  return Balancers:validate(Balancers:process_auto_fields(b, "insert"))
+  return Upstreams:validate(Upstreams:process_auto_fields(b, "insert"))
 end
 
 
-describe("load balancers", function()
+describe("load upstreams", function()
   local a_valid_uuid = "cbb297c0-a956-486d-ad1d-f9b42df9465a"
   local uuid_pattern = "^" .. ("%x"):rep(8) .. "%-" .. ("%x"):rep(4) .. "%-"
                            .. ("%x"):rep(4) .. "%-" .. ("%x"):rep(4) .. "%-"
                            .. ("%x"):rep(12) .. "$"
 
 
-  it("validates a valid load balancer", function()
-    local b = {
+  it("validates a valid load upstream", function()
+    local u = {
       id              = a_valid_uuid,
       name            = "my_service",
       hash_on         = "header",
@@ -25,7 +25,7 @@ describe("load balancers", function()
       hash_fallback   = "cookie",
       hash_on_cookie  = "a_cookie",
     }
-    assert(validate(b))
+    assert(validate(u))
   end)
 
   it("invalid name produces error", function()
@@ -136,20 +136,20 @@ describe("load balancers", function()
   end)
 
   it("produces defaults", function()
-    local b = {
+    local u = {
       name = "www.example.com",
     }
-    b = Balancers:process_auto_fields(b, "insert")
-    local ok, err = Balancers:validate(b)
+    u = Upstreams:process_auto_fields(u, "insert")
+    local ok, err = Upstreams:validate(u)
     assert.truthy(ok)
     assert.is_nil(err)
-    assert.match(uuid_pattern, b.id)
-    assert.same(b.name, "www.example.com")
-    assert.same(b.hash_on, "none")
-    assert.same(b.hash_fallback, "none")
-    assert.same(b.hash_on_cookie_path, "/")
-    assert.same(b.slots, 10000)
-    assert.same(b.healthchecks, {
+    assert.match(uuid_pattern, u.id)
+    assert.same(u.name, "www.example.com")
+    assert.same(u.hash_on, "none")
+    assert.same(u.hash_fallback, "none")
+    assert.same(u.hash_on_cookie_path, "/")
+    assert.same(u.slots, 10000)
+    assert.same(u.healthchecks, {
       active = {
         timeout = 1,
         concurrency = 10,
